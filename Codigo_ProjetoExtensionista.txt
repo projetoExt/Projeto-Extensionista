@@ -1,0 +1,55 @@
+// Definições dos pinos
+const int sensorPin = A0; // Pino onde o sensor de temperatura está conectado
+const int relePin = 8;    // Pino onde o módulo relé está conectado
+const int ledPin = 7;     // Pino onde o LED está conectado
+
+// Temperaturas de controle com histerese
+const float tempMaxParaLigar = 35.0;  // Temperatura para ligar o ar-condicionado
+const float tempMinParaDesligar = 28.0; // Temperatura para desligar o ar-condicionado
+const float tempAlerta = 32.0;        // Temperatura para começar a piscar o LED
+
+// Variável para saber o estado atual do ar-condicionado
+bool arCondicionadoLigado = false;
+
+void setup() {
+  Serial.begin(9600);              // Inicializa comunicação serial
+  pinMode(relePin, OUTPUT);        // Define o pino do relé como saída
+  pinMode(ledPin, OUTPUT);         // Define o pino do LED como saída
+  digitalWrite(relePin, LOW);      // Começa com o relé desligado (ar-condicionado OFF)
+  digitalWrite(ledPin, LOW);       // LED desligado inicialmente
+}
+
+void loop() {
+  // Leitura do sensor
+  int sensorValue = analogRead(sensorPin);
+  float voltage = sensorValue * (5.0 / 1023.0);   // Conversão da leitura para tensão
+  float temperatureC = (voltage - 0.5) * 100.0;   // Conversão da tensão para temperatura (°C)
+
+  // Exibe temperatura no monitor serial
+  Serial.print("Temperatura: ");
+  Serial.print(temperatureC);
+  Serial.println(" °C");
+
+  // Controle do ar-condicionado com histerese
+  if (!arCondicionadoLigado && temperatureC >= tempMaxParaLigar) {
+    digitalWrite(relePin, HIGH);  // Liga o relé (ar-condicionado ON)
+    arCondicionadoLigado = true;
+    Serial.println("Ar-condicionado LIGADO");
+  } 
+  else if (arCondicionadoLigado && temperatureC <= tempMinParaDesligar) {
+    digitalWrite(relePin, LOW);   // Desliga o relé (ar-condicionado OFF)
+    arCondicionadoLigado = false;
+    Serial.println("Ar-condicionado DESLIGADO");
+  }
+
+  // Controle do LED de alerta (piscar)
+  if (temperatureC >= tempAlerta) {
+    digitalWrite(ledPin, HIGH);   // Acende o LED
+    delay(300);                   // Espera 300 ms
+    digitalWrite(ledPin, LOW);    // Apaga o LED
+    delay(300);                   // Espera mais 300 ms
+  } else {
+    digitalWrite(ledPin, LOW);    // LED permanece apagado
+    delay(1000);                  // Aguarda 1 segundo antes da próxima leitura
+  }
+}
